@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<title>Hideout</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --line: #2a2f3a;
+    --text: #e8eaf0; --muted: #8b93a5; --accent: #6c8cff; --accent2: #4f6df0;
+    --good: #3ecf8e; --bad: #ff6b6b;
+  }
+  :root[data-theme=light] {
+    --bg: #f4f5f8; --panel: #ffffff; --panel2: #eceef3; --line: #d5d9e2; --text: #1b1e27; --muted: #5d6578;
+    --good: #138a56; --bad: #c93636;
+  }
+  html.dense .msg { margin-top: 6px; }
+  html.dense .msg.compact { margin-top: 0; }
+  html.dense .msg .avatar { width: 28px !important; height: 28px !important; font-size: 11px !important; }
+  html.dense .msg .gutter { width: 28px; }
+  html.nomotion * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+  select { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel2); color: var(--text); font: inherit; }
+  input[type=range] { padding: 0; border: 0; background: none; }
+  .msg.mention { background: rgba(255,196,0,.12); box-shadow: inset 3px 0 0 #ffc400; }
+  .mn { background: rgba(108,140,255,.25); border-radius: 4px; padding: 0 3px; }
+  .mn.me { background: rgba(255,196,0,.3); }
+  .body a { color: var(--accent); }
+  .body code { background: var(--panel2); border-radius: 5px; padding: 1px 5px; font: 13px ui-monospace, Menlo, Consolas, monospace; }
+  .body pre { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 4px 0; overflow-x: auto; white-space: pre; font: 13px ui-monospace, Menlo, Consolas, monospace; }
+  .newline { display: flex; align-items: center; gap: 10px; color: var(--bad); font-size: 11px; font-weight: 700; padding: 0 16px; margin-top: 10px; }
+  .newline::before, .newline::after { content: ''; flex: 1; border-top: 1px solid var(--bad); }
+  .pinned-mark { font-size: 11px; color: var(--muted); margin-left: 6px; }
+  .poll { margin-top: 4px; max-width: 420px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--panel2); }
+  .poll .pq { font-weight: 600; margin-bottom: 6px; overflow-wrap: anywhere; }
+  .popt { position: relative; display: block; width: 100%; text-align: left; margin: 4px 0; padding: 7px 10px; overflow: hidden; }
+  .popt .bar { position: absolute; inset: 0 auto 0 0; background: rgba(79,109,240,.3); z-index: 0; }
+  .popt span { position: relative; z-index: 1; }
+  .popt.mine { border-color: var(--accent); }
+  #typing { min-height: 18px; padding: 0 16px 2px; font-size: 12px; color: var(--muted); }
+  #searchbar { display: flex; gap: 8px; padding: 8px 14px; background: var(--panel); border-bottom: 1px solid var(--line); align-items: center; }
+  #searchbar input { flex: 1; }
+  #stage { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px; background: #000; max-height: 45vh; overflow: auto; }
+  #stage .scr { position: relative; flex: 1 1 320px; min-width: 0; }
+  #stage video { width: 100%; max-height: 40vh; background: #000; display: block; }
+  #stage .cap { position: absolute; left: 6px; top: 6px; background: rgba(0,0,0,.6); color: #fff; font-size: 12px; padding: 2px 8px; border-radius: 6px; }
+  #emoji-box { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; padding: 8px; background: var(--panel); border-top: 1px solid var(--line); max-height: 180px; overflow: auto; }
+  #emoji-box button { font-size: 20px; padding: 2px; background: none; border-color: transparent; }
+  #mention-box { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px 14px; background: var(--panel); border-top: 1px solid var(--line); }
+  #mention-box button { padding: 3px 10px; font-size: 13px; }
+  #chat-form .ico { padding: 8px 10px; }
+  .statusdot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 5px; background: var(--good); flex: none; }
+  .statusdot.away { background: #e3a008; } .statusdot.dnd { background: var(--bad); }
+  .stext { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px; }
+  .danger { border-color: var(--bad); color: var(--bad); }
+  table.adm { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.adm td, table.adm th { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+  .sheet.wide { max-width: 640px; }
+  #toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 20; background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; display: flex; gap: 12px; align-items: center; box-shadow: 0 8px 30px rgba(0,0,0,.4); }
+  .threadbtn { display: inline-block; margin-top: 4px; padding: 2px 10px; font-size: 12.5px; color: var(--accent); background: none; border-color: transparent; }
+  .threadbtn:hover { text-decoration: underline; border-color: transparent; }
+  #th-list { max-height: 50vh; overflow: auto; margin: 10px 0; }
+  .th-row { display: flex; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+  .th-row .c { min-width: 0; flex: 1; }
+  .th-row .body { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .th-root { border-left: 3px solid var(--accent); padding-left: 10px; }
+  #sw-list { margin-top: 8px; max-height: 50vh; overflow: auto; display: flex; flex-direction: column; gap: 4px; }
+  #sw-list button { text-align: left; }
+  #sw-list button.sel { border-color: var(--accent); background: rgba(79,109,240,.2); }
+  table.keys td { padding: 4px 8px; border-bottom: 1px solid var(--line); } table.keys td:first-child { white-space: nowrap; font-family: ui-monospace, Menlo, Consolas, monospace; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  [hidden] { display: none !important; }
+  input, button, textarea { font: inherit; color: inherit; }
+  input, textarea {
+    width: 100%; padding: 11px 12px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--panel2); outline: none;
+  }
+  textarea { resize: vertical; min-height: 70px; }
+  input[type=color] { padding: 2px; height: 40px; width: 64px; cursor: pointer; }
+  input:focus, textarea:focus { border-color: var(--accent); }
+  input:disabled { opacity: .5; }
+  button {
+    border-radius: 10px; padding: 10px 14px; cursor: pointer;
+    background: var(--panel2); border: 1px solid var(--line);
+  }
+  button:hover { border-color: var(--accent); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button.primary { background: var(--accent2); border-color: var(--accent2); color: #fff; font-weight: 600; }
+  button.primary:disabled { opacity: .5; cursor: default; }
+  button.on { background: rgba(62,207,142,.15); border-color: var(--good); color: var(--good); }
+  button.wide { width: 100%; padding: 12px; margin-top: 18px; }
+  h2 { margin: 0 0 6px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+  label { display: block; margin: 12px 0 5px; font-size: 13px; color: var(--muted); }
+  .err { color: var(--bad); min-height: 20px; margin-top: 10px; font-size: 14px; }
+  .note { margin-top: 14px; font-size: 12.5px; color: var(--muted); }
+
+  /* full-screen pages (login, home) */
+  .screen { min-height: 100%; display: grid; place-items: center; padding: 20px; }
+  .card {
+    width: 100%; max-width: 400px; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 16px; padding: 26px;
+  }
+  .card h1 { margin: 0 0 4px; font-size: 24px; }
+  .card p.sub { margin: 0 0 16px; color: var(--muted); font-size: 14px; }
+  #insecure {
+    margin-bottom: 14px; padding: 10px 12px; border-radius: 10px; font-size: 13px;
+    background: rgba(255,107,107,.1); border: 1px solid var(--bad); color: #ffb3b3;
+  }
+  .seg { display: flex; gap: 4px; padding: 4px; background: var(--panel2); border-radius: 12px; margin-bottom: 6px; }
+  .seg button { flex: 1; border-color: transparent; background: transparent; padding: 8px; }
+  .seg button.active { background: var(--accent2); color: #fff; }
+  .home-card { padding: 0; overflow: hidden; }
+  .home-body { padding: 0 22px 24px; }
+  .row-actions { display: flex; gap: 8px; margin: 14px 0; }
+  .row-actions button { flex: 1; }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 6px 0 14px; }
+
+  /* profile pieces (used everywhere) */
+  .avatar {
+    display: inline-flex; align-items: center; justify-content: center; flex: none;
+    border-radius: 50%; overflow: hidden; color: #fff; font-weight: 700; padding: 0;
+    border: 0; background: var(--panel2); user-select: none;
+  }
+  button.avatar:hover { filter: brightness(1.12); border: 0; }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .avatar.speaking { box-shadow: 0 0 0 3px var(--good); }
+  .pcard { position: relative; background: var(--panel); border-radius: 14px; overflow: hidden; }
+  .pbanner { height: 110px; position: relative; }
+  .pbanner img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .pcard .avatar.on-banner { position: absolute; left: 18px; top: 66px; border: 6px solid var(--panel); width: 92px; height: 92px; }
+  .pinfo { padding: 56px 20px 16px; }
+  .pname { font-size: 20px; font-weight: 700; overflow-wrap: anywhere; }
+  .puser { color: var(--muted); font-size: 14px; }
+  .pbio { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; }
+  .home-card .pcard { border-radius: 0; }
+
+  /* app shell */
+  #app { height: 100%; height: 100dvh; display: flex; flex-direction: column; }
+  #banner { background: var(--bad); color: #fff; padding: 8px 14px; text-align: center; display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap; }
+  #banner button { padding: 4px 10px; background: rgba(0,0,0,.25); border-color: transparent; color: #fff; }
+  .layout { flex: 1; min-height: 0; display: grid; grid-template-columns: 260px minmax(0, 1fr); }
+
+  aside {
+    background: var(--panel); border-right: 1px solid var(--line); padding: 16px;
+    display: flex; flex-direction: column; gap: 14px; overflow: auto; min-height: 0;
+  }
+  #room-title { font-size: 18px; font-weight: 700; word-break: break-word; }
+  .controls { display: flex; flex-direction: column; gap: 8px; }
+  .spacer { flex: 1; }
+  .lock { font-size: 12px; color: var(--muted); }
+
+  #members, #channels { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  .h-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .h-row h2 { margin: 0; }
+  .mini { padding: 1px 9px; font-size: 16px; line-height: 1.4; border-radius: 8px; }
+  .crown { font-size: 12px; margin-left: 4px; }
+  .item-row { display: flex; align-items: center; gap: 8px; padding: 3px 4px; border-radius: 10px; border: 1px solid transparent; }
+  .item-row:hover { background: var(--panel2); }
+  .item-row.active { background: var(--panel2); border-color: var(--accent); }
+  .item-row.off { opacity: .55; }
+  .group-icon { width: 32px; height: 32px; border-radius: 10px; background: var(--panel2); display: inline-flex; align-items: center; justify-content: center; font-weight: 700; color: var(--muted); flex: none; }
+  .item-main {
+    flex: 1; min-width: 0; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    text-align: left; padding: 7px 6px; background: transparent; border-color: transparent;
+  }
+  .item-main:hover { border-color: transparent; }
+  .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .badge { font-size: 11px; padding: 2px 7px; border-radius: 99px; background: rgba(62,207,142,.15); color: var(--good); white-space: nowrap; }
+  .unread { font-size: 11px; font-weight: 700; min-width: 20px; text-align: center; padding: 1px 6px; border-radius: 99px; background: var(--accent2); color: #fff; }
+
+  #me { display: flex; align-items: center; gap: 8px; padding: 8px; border-radius: 12px; background: var(--panel2); }
+  #me .me-info { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; text-align: left; background: transparent; border: 0; padding: 0; }
+  #me .me-text { min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+  #me .me-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #me .me-user { font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #me .gear { padding: 8px 10px; }
+
+  main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  #tabs { display: none; gap: 6px; overflow-x: auto; padding: 8px 10px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  .tab { white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px 6px 8px; border-radius: 99px; flex: none; }
+  .tab.active { border-color: var(--accent); background: rgba(79,109,240,.2); }
+  .tab.off { opacity: .55; }
+  #conv-bar { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  #conv-title { font-weight: 700; }
+  #conv-note { font-size: 12.5px; color: var(--muted); }
+
+  #log { flex: 1; min-height: 0; overflow-y: auto; padding: 12px 0; display: flex; flex-direction: column; }
+  .msg { display: flex; gap: 12px; padding: 2px 16px; margin-top: 12px; }
+  .msg:hover { background: rgba(255,255,255,.03); }
+  .msg.compact { margin-top: 0; }
+  .msg .gutter { width: 40px; flex: none; font-size: 10px; color: transparent; text-align: right; padding-top: 5px; user-select: none; }
+  .msg.compact:hover .gutter { color: var(--muted); }
+  .msg .content { min-width: 0; flex: 1; }
+  .head { display: flex; gap: 8px; align-items: baseline; }
+  .who { font-weight: 600; background: none; border: 0; padding: 0; color: var(--text); cursor: pointer; }
+  .who:hover { text-decoration: underline; border: 0; }
+  .time { font-size: 11px; color: var(--muted); }
+  .body { white-space: pre-wrap; overflow-wrap: anywhere; }
+  .msg.sys { justify-content: center; color: var(--muted); font-size: 13px; margin-top: 8px; }
+  .msg.sys:hover { background: none; }
+  .msg { position: relative; }
+  .msg .more { position: absolute; right: 12px; top: -4px; opacity: 0; padding: 0 9px; font-size: 18px; line-height: 1.3; }
+  .msg:hover .more, .msg:focus-within .more, .msg.open .more { opacity: 1; }
+  @media (hover: none) { .msg .more { opacity: .6; } }
+  .mact { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .mact button { padding: 4px 10px; font-size: 13px; }
+  .mact .emo { font-size: 18px; padding: 1px 7px; }
+  .reacts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .react { display: inline-flex; gap: 5px; align-items: center; padding: 1px 9px; border-radius: 99px; font-size: 13px; }
+  .react.mine { border-color: var(--accent); background: rgba(79,109,240,.22); }
+  .replyref { font-size: 12.5px; color: var(--muted); border-left: 3px solid var(--line); padding: 0 0 0 8px; margin-bottom: 3px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; display: block; max-width: 100%; text-align: left; background: none; border-top: 0; border-right: 0; border-bottom: 0; border-radius: 0; }
+  .edited { font-size: 11px; color: var(--muted); margin-left: 6px; }
+  .att img { max-width: min(100%, 360px); max-height: 300px; border-radius: 10px; display: block; cursor: zoom-in; margin-top: 4px; background: var(--panel2); }
+  .att .ph { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .fileitem { display: inline-flex; gap: 10px; align-items: center; margin-top: 4px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel2); max-width: 100%; }
+  .fileitem .fn { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .fileitem .fs { color: var(--muted); font-size: 12px; }
+  .msg.flash { background: rgba(108,140,255,.2); }
+  #replybar, #attbar { display: flex; align-items: center; gap: 8px; padding: 6px 14px; font-size: 13px; color: var(--muted); background: var(--panel); border-top: 1px solid var(--line); }
+  #replybar span, #attbar span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #replybar button, #attbar button { padding: 2px 9px; }
+  #callbar { display: flex; gap: 10px; align-items: center; justify-content: center; padding: 8px 14px; background: rgba(79,109,240,.28); flex-wrap: wrap; }
+  #callbar button { padding: 5px 12px; }
+  #conv-bar .grow { flex: 1; }
+  #conv-actions { display: flex; gap: 8px; margin-left: auto; align-self: center; }
+  #conv-actions button { padding: 5px 12px; font-size: 13px; }
+  #viewer .sheet { max-width: 96vw; width: auto; background: transparent; border: 0; text-align: center; padding: 0; }
+  #viewer img { max-width: 100%; max-height: 82vh; border-radius: 8px; }
+  .banrow { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+  .banrow span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  label.check.light { margin-top: 10px; font-size: 13.5px; color: var(--muted); }
+  #saved-rooms { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+  #chat-form { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--line); background: var(--panel); padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+
+  /* dialogs */
+  .modal { position: fixed; inset: 0; z-index: 10; background: rgba(0,0,0,.6); display: grid; place-items: center; padding: 16px; overflow: auto; }
+  .sheet { width: 100%; max-width: 440px; max-height: 100%; overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px; }
+  .sheet h3 { margin: 0 0 12px; font-size: 18px; }
+  .sheet .pcard { border: 1px solid var(--line); margin-bottom: 6px; }
+  .tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .tools button { padding: 8px 12px; }
+  .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+  .counter { font-size: 12px; color: var(--muted); text-align: right; }
+
+  .ok { color: var(--good); min-height: 20px; margin-top: 10px; font-size: 14px; }
+  .linkbtn { display: block; margin: 12px auto 0; background: none; border: 0; color: var(--accent); padding: 6px; font-size: 14px; }
+  .linkbtn:hover { text-decoration: underline; border: 0; }
+  .actions .left { margin-right: auto; }
+  .keybox {
+    font: 600 17px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .06em;
+    background: var(--panel2); border: 1px dashed var(--accent); border-radius: 10px;
+    padding: 14px; text-align: center; word-break: break-all; user-select: all;
+  }
+  label.check { display: flex; align-items: center; gap: 10px; margin-top: 16px; color: var(--text); font-size: 14px; }
+  label.check input { width: auto; }
+  .sheet hr { margin: 16px 0 12px; }
+
+  @media (max-width: 720px) {
+    .layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+    aside { border-right: 0; border-bottom: 1px solid var(--line); flex-direction: row; flex-wrap: wrap; align-items: center; padding: 10px 12px; gap: 10px; overflow: visible; }
+    aside .people-wrap, .spacer, .lock { display: none; }
+    .controls { flex-direction: row; }
+    #room-title { font-size: 16px; }
+    #me { margin-left: auto; padding: 4px; }
+    #me .me-text { display: none; }
+    #tabs { display: flex; }
+  }
+</style>
+</head>
+<body>
+
+<section id="auth" class="screen">
+  <form class="card" id="auth-form" autocomplete="on">
+    <h1>Hideout</h1>
+    <p class="sub">Private text and voice chat for your group.</p>
+    <div id="insecure" hidden>This page is not on HTTPS, so encryption and the microphone are blocked by your browser. Use localhost or an https:// address.</div>
+    <div class="seg" role="tablist">
+      <button type="button" id="tab-login" class="active" role="tab">Log in</button>
+      <button type="button" id="tab-signup" role="tab">Create account</button>
+    </div>
+    <label for="a-user">Username</label>
+    <input id="a-user" maxlength="20" autocomplete="username" autocapitalize="none" spellcheck="false" required placeholder="letters, numbers, _ and .">
+    <div id="pass-wrap">
+      <label for="a-pass">Password</label>
+      <input id="a-pass" type="password" maxlength="200" autocomplete="current-password" placeholder="At least 8 characters">
+    </div>
+    <div id="key-wrap" hidden>
+      <label for="a-key">Recovery key</label>
+      <input id="a-key" maxlength="60" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX">
+    </div>
+    <div id="confirm-wrap" hidden>
+      <label for="a-pass2">Confirm password</label>
+      <input id="a-pass2" type="password" maxlength="200" autocomplete="new-password" placeholder="Type it again">
+    </div>
+    <div id="invite-wrap" hidden>
+      <label for="a-invite">Invite code</label>
+      <input id="a-invite" maxlength="100" autocomplete="off" placeholder="Ask whoever runs this server">
+    </div>
+    <label class="check light"><input type="checkbox" id="a-keep"> Keep me logged in on this device</label>
+    <button class="primary wide" id="auth-go" type="submit">Log in</button>
+    <button type="button" class="linkbtn" id="alt-login">Use a recovery key instead</button>
+    <div id="auth-err" class="err" role="alert"></div>
+    <p class="note" id="auth-note" hidden>Your profile is encrypted before it is saved, so nobody else can read it. You'll get a recovery key right after signing up. Keep it safe: it's the only way back in if you forget your password.</p>
+  </form>
+</section>
+
+<section id="home" class="screen" hidden>
+  <div class="card home-card">
+    <div id="home-card"></div>
+    <div class="home-body">
+      <p id="home-note" class="note" hidden></p>
+      <div class="row-actions">
+        <button id="home-edit" type="button">Edit profile</button>
+        <button id="home-account" type="button">Account</button>
+        <button id="home-logout" type="button">Log out</button>
+      </div>
+      <hr>
+      <div id="saved-wrap" hidden>
+        <h2>Saved rooms</h2>
+        <div id="saved-rooms"></div>
+        <hr>
+      </div>
+      <form id="join-form" autocomplete="off">
+        <h2>Join a room</h2>
+        <label for="room">Room name</label>
+        <input id="room" maxlength="64" required placeholder="e.g. friday-crew">
+        <label for="pass">Room passphrase</label>
+        <input id="pass" type="password" maxlength="200" required placeholder="At least 8 characters">
+        <label class="check light" id="keep-room-wrap"><input type="checkbox" id="keep-room"> Remember this room on this device (skips the passphrase next time)</label>
+        <button class="primary wide" id="join-go" type="submit">Join</button>
+        <div id="home-err" class="err" role="alert"></div>
+        <p class="note">Everyone who gets in with the right passphrase joins the group chat automatically, and can DM anyone else in the room. The passphrase never leaves your device.</p>
+      </form>
+    </div>
+  </div>
+</section>
+
+<div id="app" hidden>
+  <div id="banner" hidden><span id="banner-text"></span><button id="banner-btn" type="button">Back to home</button></div>
+  <div class="layout">
+    <aside>
+      <div>
+        <h2>Room</h2>
+        <div id="room-title"></div>
+      </div>
+      <div class="controls">
+        <button id="voice" type="button">Join voice</button>
+        <button id="mute" type="button" hidden>Mute</button>
+        <button id="share" type="button" hidden>Share screen</button>
+      </div>
+      <div class="people-wrap">
+        <div class="h-row"><h2>Channels</h2><button id="ch-add" type="button" class="mini" aria-label="New channel" title="New channel">+</button></div>
+        <ul id="channels"></ul>
+      </div>
+      <div class="people-wrap">
+        <h2>People · <span id="count">1</span> online</h2>
+        <ul id="members"></ul>
+      </div>
+      <div class="spacer"></div>
+      <div id="me"></div>
+      <div class="lock">End-to-end encrypted</div>
+      <button id="open-saved" type="button">Saved messages</button>
+      <button id="open-keys" type="button">Keyboard shortcuts</button>
+      <button id="invite" type="button">Copy invite link</button>
+      <button id="room-settings" type="button" hidden>Room settings</button>
+      <button id="leave" type="button">Leave room</button>
+    </aside>
+    <main>
+      <div id="tabs" role="tablist" aria-label="Conversations"></div>
+      <div id="callbar" hidden></div>
+      <div id="conv-bar"><span id="conv-title"></span><span id="conv-note"></span><span id="conv-actions"></span></div>
+      <div id="stage" hidden></div>
+      <div id="searchbar" hidden><input id="search-in" placeholder="Search this conversation" aria-label="Search"><span id="search-count" class="note" style="margin:0"></span><button type="button" id="search-x">Close</button></div>
+      <div id="log" aria-live="polite"></div>
+      <div id="typing" aria-live="off"></div>
+      <div id="replybar" hidden><span id="reply-text"></span><button type="button" id="reply-x" aria-label="Cancel">✕</button></div>
+      <div id="attbar" hidden><span id="att-text"></span><button type="button" id="att-x" aria-label="Remove attachment">✕</button></div>
+      <div id="mention-box" hidden></div>
+      <div id="emoji-box" hidden></div>
+      <form id="chat-form" autocomplete="off">
+        <button type="button" id="attach" class="ico" aria-label="Attach a file" title="Attach a file">📎</button>
+        <button type="button" id="emoji-btn" class="ico" aria-label="Emoji" title="Emoji">😊</button>
+        <button type="button" id="poll-btn" class="ico" aria-label="Make a poll" title="Make a poll">📊</button>
+        <input type="file" id="att-file" hidden>
+        <input id="msg" maxlength="4000" placeholder="Message" aria-label="Message">
+        <button class="primary" id="send" type="submit">Send</button>
+      </form>
+    </main>
+  </div>
+</div>
+
+<div id="editor" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="ed-title">
+  <div class="sheet">
+    <h3 id="ed-title">Edit profile</h3>
+    <div id="ed-preview"></div>
+    <label for="ed-name">Display name</label>
+    <input id="ed-name" maxlength="32" autocomplete="off">
+    <label for="ed-bio">About me</label>
+    <textarea id="ed-bio" maxlength="190" rows="3" placeholder="Tell your friends a bit about you"></textarea>
+    <label>Avatar</label>
+    <div class="tools">
+      <button type="button" id="ed-av-pick">Upload image</button>
+      <button type="button" id="ed-av-clear">Remove</button>
+    </div>
+    <label>Banner</label>
+    <div class="tools">
+      <button type="button" id="ed-bn-pick">Upload image</button>
+      <button type="button" id="ed-bn-clear">Remove</button>
+      <input type="color" id="ed-color" aria-label="Banner color" title="Banner color">
+    </div>
+    <input type="file" id="ed-av-file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+    <input type="file" id="ed-bn-file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+    <div id="ed-err" class="err" role="alert"></div>
+    <p class="note" style="margin-top:0">Pictures are cropped to fit and shrunk before they're saved. Change your username or password under Account settings.</p>
+    <div class="actions">
+      <button type="button" id="ed-account" class="left">Account settings</button>
+      <button type="button" id="ed-cancel">Cancel</button>
+      <button type="button" id="ed-save" class="primary">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="account" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="ac-title">
+  <div class="sheet">
+    <h3 id="ac-title">Account settings</h3>
+
+    <h2>Username</h2>
+    <p class="note" style="margin:0">You're <strong>@<span id="ac-user"></span></strong>. Friends see the new name straight away.</p>
+    <label for="ac-newuser">New username</label>
+    <input id="ac-newuser" maxlength="20" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="letters, numbers, _ and .">
+    <div class="actions"><button type="button" id="ac-user-save">Change username</button></div>
+    <div id="ac-user-msg" class="err" role="alert"></div>
+    <hr>
+
+    <h2>Password</h2>
+    <div id="ac-cur-wrap">
+      <label for="ac-cur">Current password</label>
+      <input id="ac-cur" type="password" maxlength="200" autocomplete="current-password">
+    </div>
+    <p id="ac-cur-note" class="note" hidden>You signed in with your recovery key, so you can set a new password without the old one.</p>
+    <label for="ac-new">New password</label>
+    <input id="ac-new" type="password" maxlength="200" autocomplete="new-password" placeholder="At least 8 characters">
+    <label for="ac-new2">Confirm new password</label>
+    <input id="ac-new2" type="password" maxlength="200" autocomplete="new-password">
+    <div class="actions"><button type="button" id="ac-pw-save">Change password</button></div>
+    <div id="ac-pw-msg" class="err" role="alert"></div>
+    <hr>
+
+    <h2>Appearance</h2>
+    <label for="ap-theme" style="margin-top:4px">Theme</label>
+    <select id="ap-theme"><option value="auto">Match my device</option><option value="dark">Dark</option><option value="light">Light</option></select>
+    <label for="ap-accent">Accent color</label>
+    <div class="tools"><input type="color" id="ap-accent" aria-label="Accent color"><button type="button" id="ap-accent-reset">Reset</button></div>
+    <label for="ap-size">Text size</label>
+    <select id="ap-size"><option value="14">Small</option><option value="15">Medium</option><option value="17">Large</option><option value="19">Extra large</option></select>
+    <label for="ap-density">Message spacing</label>
+    <select id="ap-density"><option value="cozy">Cozy</option><option value="dense">Compact</option></select>
+    <label class="check light"><input type="checkbox" id="ap-24h"> Use 24-hour time</label>
+    <label class="check light"><input type="checkbox" id="ap-joins"> Show "joined" and "left" notices</label>
+    <label class="check light"><input type="checkbox" id="ap-motion"> Reduce motion</label>
+    <hr>
+
+    <h2>Status</h2>
+    <label for="st-state" style="margin-top:4px">Show me as</label>
+    <select id="st-state"><option value="online">Online</option><option value="away">Away</option><option value="dnd">Do not disturb</option></select>
+    <label for="st-text">What you're up to</label>
+    <input id="st-text" maxlength="60" placeholder="e.g. playing Minecraft" autocomplete="off">
+    <label class="check light"><input type="checkbox" id="st-typing"> Let others see when I'm typing</label>
+    <hr>
+
+    <h2>Notifications</h2>
+    <label for="nt-mode" style="margin-top:4px">Channel notifications</label>
+    <select id="nt-mode"><option value="all">Every message</option><option value="mentions">Only when I'm @mentioned</option></select>
+    <label for="ap-volume" style="margin-top:4px">Sound volume</label>
+    <input type="range" id="ap-volume" min="0" max="100" step="5">
+    <label class="check light" style="margin-top:4px"><input type="checkbox" id="ac-sound"> Play a sound for new messages</label>
+    <label class="check light"><input type="checkbox" id="ac-desktop"> Show desktop notifications while this tab is in the background</label>
+    <div id="ac-notify-msg" class="err" role="alert"></div>
+    <hr>
+
+    <div id="desk-wrap" hidden>
+    <h2>Desktop app</h2>
+    <label class="check light" style="margin-top:4px"><input type="checkbox" id="dk-login"> Start Hideout when I log in to my computer</label>
+    <label class="check light"><input type="checkbox" id="dk-tray"> Closing the window keeps Hideout running in the tray</label>
+    <label class="check light"><input type="checkbox" id="dk-game"> Show "Playing …" as my status when I'm in a game</label>
+    <p class="note">Push-to-talk (below) works even when Hideout isn't the active window.</p>
+    <hr></div>
+
+    <h2>Voice</h2>
+    <label for="vc-mic" style="margin-top:4px">Microphone</label>
+    <select id="vc-mic"><option value="">Default</option></select>
+    <label class="check light"><input type="checkbox" id="vc-ptt"> Push to talk (hold a key to speak)</label>
+    <div class="tools"><button type="button" id="vc-key">Key: V</button><span class="note" style="margin:0" id="vc-key-note"></span></div>
+    <hr>
+
+    <h2>Blocked people</h2>
+    <div id="ac-blocked"></div>
+    <hr>
+
+    <h2>Devices</h2>
+    <p class="note" style="margin:0">Log out every other phone or computer that is signed in as you.</p>
+    <div class="actions"><button type="button" id="ac-others">Log out other devices</button></div>
+    <div id="ac-dev-msg" class="err" role="alert"></div>
+    <hr>
+
+    <div id="ac-admin-wrap" hidden><h2>Server admin</h2>
+    <div class="actions"><button type="button" id="ac-admin">Open admin page</button></div><hr></div>
+
+    <h2>Delete account</h2>
+    <p class="note" style="margin:0">Removes your account, your messages and your DMs. This can't be undone. Uses the current password above.</p>
+    <div class="actions"><button type="button" id="ac-delete" class="danger">Delete my account</button></div>
+    <div id="ac-del-msg" class="err" role="alert"></div>
+    <hr>
+
+    <h2>Recovery key</h2>
+    <p class="note" id="ac-rk-status" style="margin:0"></p>
+    <p class="note">Making a new key uses the current password above.</p>
+    <div class="actions"><button type="button" id="ac-rk-gen">Make a new recovery key</button></div>
+    <div id="ac-rk-msg" class="err" role="alert"></div>
+
+    <div class="actions"><button type="button" id="ac-close" class="primary">Done</button></div>
+  </div>
+</div>
+
+<div id="rkey" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="rk-title">
+  <div class="sheet">
+    <h3 id="rk-title">Save your recovery key</h3>
+    <p class="note" style="margin-top:0">You can use this key instead of your password to log in, even if you forget the password. It's shown only once, so keep it somewhere safe, like a password manager. Anyone who has it can log in as you.</p>
+    <div id="rk-value" class="keybox"></div>
+    <div class="tools" style="margin-top:10px">
+      <button type="button" id="rk-copy">Copy</button>
+      <span id="rk-copy-msg" class="note" style="margin:0" role="status"></span>
+    </div>
+    <label class="check"><input type="checkbox" id="rk-ok"> I've saved my recovery key</label>
+    <div class="actions"><button type="button" id="rk-done" class="primary" disabled>Done</button></div>
+  </div>
+</div>
+
+<div id="chmodal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="ch-title">
+  <div class="sheet">
+    <h3 id="ch-title">New channel</h3>
+    <label for="ch-name">Channel name</label>
+    <input id="ch-name" maxlength="24" autocomplete="off" placeholder="e.g. games">
+    <div id="ch-err" class="err" role="alert"></div>
+    <div class="actions"><button type="button" id="ch-cancel">Cancel</button><button type="button" id="ch-save" class="primary">Create</button></div>
+  </div>
+</div>
+
+<div id="roomset" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="rs-title">
+  <div class="sheet">
+    <h3 id="rs-title">Room settings</h3>
+    <p class="note" style="margin-top:0" id="rs-intro"></p>
+    <h2>Rules</h2>
+    <label for="rs-slow" style="margin-top:4px">Slow mode (seconds between messages in a channel)</label>
+    <select id="rs-slow"><option value="0">Off</option><option value="5">5</option><option value="15">15</option><option value="30">30</option><option value="60">60</option><option value="300">300</option></select>
+    <label for="rs-keep">Delete messages older than</label>
+    <select id="rs-keep"><option value="0">Never</option><option value="1">1 day</option><option value="7">7 days</option><option value="30">30 days</option><option value="90">90 days</option></select>
+    <label for="rs-max">Most people at once</label>
+    <select id="rs-max"></select>
+    <label class="check light"><input type="checkbox" id="rs-files"> Allow files and images</label>
+    <label class="check light"><input type="checkbox" id="rs-chan"> Anyone can create channels</label>
+    <label class="check light"><input type="checkbox" id="rs-lock"> Closed to new people (only people who already joined can come back)</label>
+    <hr>
+    <h2>Channels</h2>
+    <div id="rs-channels"></div>
+    <hr>
+    <h2>Banned people</h2>
+    <div id="rs-bans"></div>
+    <h2>Your copy</h2>
+    <div class="actions" style="justify-content:flex-start"><button type="button" id="rs-export">Download what's loaded here as a text file</button></div>
+    <div class="actions"><button type="button" id="rs-close" class="primary">Done</button></div>
+  </div>
+</div>
+
+<div id="pollmodal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="pl-title">
+  <div class="sheet">
+    <h3 id="pl-title">New poll</h3>
+    <label for="pl-q">Question</label>
+    <input id="pl-q" maxlength="200" autocomplete="off">
+    <label>Options (2 to 6)</label>
+    <div id="pl-opts"></div>
+    <div id="pl-err" class="err" role="alert"></div>
+    <div class="actions"><button type="button" id="pl-cancel">Cancel</button><button type="button" id="pl-send" class="primary">Post poll</button></div>
+  </div>
+</div>
+
+<div id="pinsmodal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="pn-title">
+  <div class="sheet">
+    <h3 id="pn-title">Pinned messages</h3>
+    <div id="pn-list"></div>
+    <div class="actions"><button type="button" id="pn-close" class="primary">Close</button></div>
+  </div>
+</div>
+
+<div id="adminmodal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="ad-title">
+  <div class="sheet wide">
+    <h3 id="ad-title">Server admin</h3>
+    <p class="note" style="margin-top:0">You can see who has an account and which rooms exist, and remove them. You can't read anyone's messages.</p>
+    <h2>Accounts</h2><div id="ad-accounts"></div>
+    <h2 style="margin-top:14px">Rooms</h2><div id="ad-rooms"></div>
+    <div id="ad-err" class="err" role="alert"></div>
+    <div class="actions"><button type="button" id="ad-close" class="primary">Close</button></div>
+  </div>
+</div>
+
+<div id="thread" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="th-title">
+  <div class="sheet">
+    <h3 id="th-title">Thread</h3>
+    <div id="th-root" class="th-root"></div>
+    <div id="th-list"></div>
+    <input id="th-input" maxlength="4000" placeholder="Reply in thread" autocomplete="off">
+    <div class="actions"><button type="button" id="th-close">Close</button><button type="button" id="th-send" class="primary">Reply</button></div>
+  </div>
+</div>
+
+<div id="saved" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="sv-title">
+  <div class="sheet">
+    <h3 id="sv-title">Saved messages</h3>
+    <p class="note" style="margin-top:0">Your private bookmarks. They're kept on this device only.</p>
+    <div id="sv-list"></div>
+    <div class="actions"><button type="button" id="sv-close" class="primary">Close</button></div>
+  </div>
+</div>
+
+<div id="switcher" class="modal" hidden role="dialog" aria-modal="true" aria-label="Quick switcher">
+  <div class="sheet">
+    <input id="sw-in" placeholder="Jump to a channel or person…" autocomplete="off" aria-label="Jump to">
+    <div id="sw-list"></div>
+  </div>
+</div>
+
+<div id="shortcuts" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="sc-title">
+  <div class="sheet">
+    <h3 id="sc-title">Keyboard shortcuts</h3>
+    <p class="note" style="margin-top:0">On a Mac, use Cmd in place of Ctrl.</p>
+    <table class="keys">
+      <tr><td>Ctrl + K</td><td>Jump to a channel or person</td></tr>
+      <tr><td>Alt + ↑ / ↓</td><td>Previous / next conversation</td></tr>
+      <tr><td>↑ (empty box)</td><td>Edit your last message</td></tr>
+      <tr><td>Ctrl + Shift + F</td><td>Search this conversation</td></tr>
+      <tr><td>Shift + Esc</td><td>Mark everything as read</td></tr>
+      <tr><td>Esc</td><td>Close a window, or cancel a reply or edit</td></tr>
+      <tr><td>Ctrl + /</td><td>Show this list</td></tr>
+    </table>
+    <div class="actions"><button type="button" id="sc-close" class="primary">Close</button></div>
+  </div>
+</div>
+
+<div id="toast" hidden><span id="toast-text"></span><button type="button" id="toast-undo">Undo</button></div>
+
+<div id="viewer" class="modal" hidden role="dialog" aria-modal="true" aria-label="Image">
+  <div class="sheet">
+    <img id="viewer-img" alt="">
+    <div class="actions" style="justify-content:center"><button type="button" id="viewer-close">Close</button></div>
+  </div>
+</div>
+
+<div id="popover" class="modal" hidden role="dialog" aria-modal="true" aria-label="Profile">
+  <div class="sheet">
+    <div id="pop-body"></div>
+    <div class="actions" id="pop-actions"></div>
+  </div>
+</div>
+
+<div id="audio" hidden></div>
+
+<script src="/crypto.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

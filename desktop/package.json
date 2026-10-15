@@ -1,0 +1,47 @@
+{
+  "name": "hideout-desktop",
+  "productName": "Hideout",
+  "version": "1.0.0",
+  "description": "Desktop app for Hideout (secure chat for friends)",
+  "main": "main.js",
+  "author": "Hideout",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist:win": "electron-builder --win --x64",
+    "dist:mac": "electron-builder --mac --universal",
+    "dist": "electron-builder"
+  },
+  "dependencies": {
+    "uiohook-napi": "^1.5.4"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "app.hideout.desktop",
+    "npmRebuild": false,
+    "publish": null,
+    "productName": "Hideout",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["main.js", "preload.js", "games.js", "ptt.js", "setup.html", "icon.png", "package.json"],
+    "asarUnpack": ["**/node_modules/uiohook-napi/**"],
+    "mac": {
+      "category": "public.app-category.social-networking",
+      "target": [{ "target": "dmg" }, { "target": "zip" }],
+      "icon": "build/icon.png",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Hideout needs the microphone for voice chat.",
+        "NSCameraUsageDescription": "Hideout may use the camera for calls.",
+        "NSInputMonitoringUsageDescription": "Hideout listens for your push-to-talk key while other apps are focused."
+      }
+    },
+    "win": {
+      "target": [{ "target": "nsis" }, { "target": "zip" }],
+      "icon": "build/icon.png",
+      "signAndEditExecutable": false
+    },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true }
+  }
+}

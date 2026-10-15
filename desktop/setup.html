@@ -1,0 +1,7 @@
+<!doctype html><meta charset="utf-8"><title>Hideout</title>
+<style>body{font:15px system-ui,sans-serif;background:#16171d;color:#eee;display:grid;place-items:center;height:100vh;margin:0}
+form{width:360px}h1{margin:0 0 6px}p{color:#aab;margin:0 0 16px}input,button{width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid #444;font:inherit;margin-bottom:10px}
+input{background:#22242d;color:#eee}button{background:#5b6cff;color:#fff;border:0;cursor:pointer}#e{color:#f88;min-height:1.2em}</style>
+<form id="f"><h1>Hideout</h1><p>Enter the address of your Hideout server (the link your friend sent, e.g. https://example.trycloudflare.com).</p>
+<input id="u" placeholder="https://…" autofocus><div id="e"></div><button>Connect</button></form>
+<script>f.onsubmit=async(e)=>{e.preventDefault();const r=await window.setup.save(u.value);if(r)document.getElementById('e').textContent=r;};</script>
