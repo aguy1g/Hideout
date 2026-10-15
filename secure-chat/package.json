@@ -1,0 +1,17 @@
+{
+  "name": "hideout-chat",
+  "version": "1.0.0",
+  "description": "Private end-to-end encrypted text and voice chat for a small group of friends",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "share": "node scripts/share.js",
+    "backup": "node scripts/backup.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
