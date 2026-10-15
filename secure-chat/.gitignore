@@ -1,0 +1,5 @@
+node_modules/
+desktop/node_modules/
+desktop/dist/
+data/
+*.zip
